@@ -7,6 +7,7 @@ include: "rules/fastqc.smk"
 
 rule all:
     input:
-        "results/multiqc/multiqc_report.html"
+        "results/multiqc/multiqc_report.html",
+        expand("results/fastqc/{sample}_{read}_fastqc.{ext}", sample=SAMPLES, read=["R1", "R2"], ext=["html", "zip"])
 
     default_target: True
