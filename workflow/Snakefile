@@ -1,0 +1,12 @@
+configfile: "config/config.yaml"
+
+include: "rules/common.smk"
+include: "rules/fastqc.smk"
+
+
+
+rule all:
+    input:
+        "results/multiqc/multiqc_report.html"
+
+    default_target: True
