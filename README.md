@@ -22,11 +22,11 @@ A Snakemake pipeline to detect markers on targeted DNA/RNA sequencing data. DNA 
 - featurecounts: TPM
 
 ## Requirements
-Snakemake (>=6.0)
+Snakemake
 Conda for environment management
 
-# Installation
-## Linux
+##  Installation
+### Linux
 1. Clone the repo
 
 2. Install Snakemake
@@ -46,33 +46,17 @@ bwa index /path/to/hs37d5.fa.gz
 
 ```
 
-# Configuration
-Edit the config.yaml file to specify your data paths and parameters:
+### Quick Start
+
+1. **Configure your data:**
+Edit config.yaml to set paths to your FASTQ files, reference genome, and BED file.
+
+2. **Setup environment:**
 ```
-# Input data paths
-input:
-  fastq_dir: "/path/to/your/fastq/files"
-  target_bed: "/path/to/your/target/regions.bed"
-
-# Reference genome
-reference:
-  genome: "/path/to/hs37d5.fa"
-
-# UMI configuration
-umi:
-  barcode_pattern: "NNNNNNNN"  # Adjust based on your UMI structure
+./setup.sh
 ```
 
-# Usage
-## Basic Execution
+3. **Run the pipeline:**
 ```
-# Dry run to check the workflow
-snakemake --dry-run
-
-# Run with 8 cores
-snakemake --cores 8 --use-conda
-
-# Run with specific samples
-snakemake --cores 8 --use-conda results/reports/SAMPLE1_quantification_report.tsv
+./run_pipeline.sh -c 8  # Use 8 cores
 ```
-
