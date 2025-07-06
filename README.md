@@ -1,8 +1,8 @@
-# FFPE_TDS
+## FFPE_TDS
 A Snakemake pipeline to detect markers on targeted DNA/RNA sequencing data. DNA Markers includes SNV, Indel, SV, MSI. RNA Markers includes Fusion, TPM
 
 
-## DNA
+### DNA
 - fastQC: quality control
 - umi_tools: extract UMIs from reads
 - bwa-mem: alignment
@@ -13,7 +13,7 @@ A Snakemake pipeline to detect markers on targeted DNA/RNA sequencing data. DNA 
 - Quantification (?)
 
 
-## RNA
+### RNA
 - fastQC: quality control
 - STAR: alignment
 - samtools: sort
