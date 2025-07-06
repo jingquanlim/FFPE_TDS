@@ -1,0 +1,45 @@
+# UMI-Aware Targeted DNA-Sequencing Pipeline Configuration
+
+# Input data paths
+input:
+  fastq_dir: "/data/ocklab2/xieyi/projects/FFPE_TDS/data/test_data"
+  target_bed: "/data/ocklab2/xieyi/projects/FFPE_TDS/data/test_data/TWIST_NHL_rev3.bed"
+
+# Reference genome
+reference:
+  genome: "/data/ocklab2/xieyi/genomics-reference/hs37d5/hs37d5.fa.gz"  # Update this path to your hs37d5 reference
+
+# UMI configuration
+umi:
+  # UMI pattern for umi_tools extract
+  # Common patterns:
+  # - NNNNNNNN for 8bp UMI at 5' end
+  # - NNNNNNNNXXXXXX for 8bp UMI + 6bp constant region
+  barcode_pattern: "NNNNNNNN"  # Adjust based on your UMI structure
+  barcode_pattern2: ""  # For paired-end UMI patterns, leave empty if not needed
+
+# Tool-specific parameters
+tools:
+  fastqc:
+    threads: 2
+  
+  bwa:
+    threads: 8
+  
+  freebayes:
+    threads: 4
+    # Additional parameters can be added here
+    min_base_quality: 20
+    min_mapping_quality: 20
+  
+  manta:
+    threads: 8
+  
+  msisensor:
+    threads: 4
+
+# Resource allocation
+resources:
+  default_mem_mb: 4000
+  alignment_mem_mb: 8000
+  variant_calling_mem_mb: 6000
