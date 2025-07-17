@@ -54,4 +54,5 @@ rnaseq:
   rsem:
     ref: "/path/to/your/rsem/reference"
   cicero:
-    fusion_annot: "/path/to/your/fusion_annot_lib.txt"
+    fusion_ref: "/path/to/your/fusion_annot_lib.txt"
+

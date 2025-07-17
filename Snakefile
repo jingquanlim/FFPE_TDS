@@ -51,8 +51,10 @@ rule all:
 
         # RNA-seq outputs
         expand("results/rnaseq/quantification/{sample}.genes.results", sample=RNA_SAMPLES),
+        
         expand("results/rnaseq/quantification/{sample}.isoforms.results", sample=RNA_SAMPLES),
         expand("results/rnaseq/fusion/{sample}_cicero.fusions.tsv", sample=RNA_SAMPLES)
+
 
 # Quality control with FastQC
 rule fastqc:
@@ -310,8 +312,6 @@ rule star_align_rnaseq:
         r2="results/rnaseq/bbsplit/{sample}_R2_clean.fastq.gz",
         stardir=config["rnaseq"]["rsem"]["ref"]
     output:
-        bam="results/rnaseq/alignment/{sample}_Aligned.toTranscriptome.out.bam",
-        chimeric_junction="results/rnaseq/alignment/{sample}_Chimeric.out.junction"
     threads: 8
     conda:
         "envs/rnaseq.yaml"
@@ -321,7 +321,6 @@ rule star_align_rnaseq:
         STAR --runThreadN {threads} --genomeDir {input.stardir} \
              --readFilesIn {input.r1} {input.r2} --readFilesCommand zcat \
              --outSAMtype BAM Unsorted --quantMode TranscriptomeSAM \
-             --chimSegmentMin 12 --chimJunctionOverhangMin 12 \
              --outFileNamePrefix results/rnaseq/alignment/{wildcards.sample}_
         """
 
