@@ -26,8 +26,8 @@ SAMPLES = get_samples()
 rule all:
     input:
         # Quality control reports
-        expand("results/qc/fastqc/{sample}_R1_fastqc.html", sample=SAMPLES),
-        expand("results/qc/fastqc/{sample}_R2_fastqc.html", sample=SAMPLES),
+        expand("results/qc/fastqc/{sample}_R1_001_fastqc.html", sample=SAMPLES),
+        expand("results/qc/fastqc/{sample}_R2_001_fastqc.html", sample=SAMPLES),
         
         # Final processed BAM files
         expand("results/alignment/{sample}_processed.bam", sample=SAMPLES),
@@ -50,10 +50,10 @@ rule fastqc:
         r1=config["input"]["fastq_dir"] + "/{sample}_R1_001.fastq.gz",
         r2=config["input"]["fastq_dir"] + "/{sample}_R2_001.fastq.gz"
     output:
-        r1_html="results/qc/fastqc/{sample}_R1_fastqc.html",
-        r1_zip="results/qc/fastqc/{sample}_R1_fastqc.zip",
-        r2_html="results/qc/fastqc/{sample}_R2_fastqc.html",
-        r2_zip="results/qc/fastqc/{sample}_R2_fastqc.zip"
+        r1_html="results/qc/fastqc/{sample}_R1_001_fastqc.html",
+        r1_zip="results/qc/fastqc/{sample}_R1_001_fastqc.zip",
+        r2_html="results/qc/fastqc/{sample}_R2_001_fastqc.html",
+        r2_zip="results/qc/fastqc/{sample}_R2_001_fastqc.zip"
     params:
         outdir="results/qc/fastqc"
     threads: 2
