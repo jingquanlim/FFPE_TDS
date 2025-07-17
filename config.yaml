@@ -43,3 +43,15 @@ resources:
   default_mem_mb: 4000
   alignment_mem_mb: 8000
   variant_calling_mem_mb: 6000
+
+# RNA-seq specific settings
+rnaseq:
+  input:
+    fastq_dir: "/path/to/your/rnaseq/fastq"
+  bbsplit:
+    human_ref: "/path/to/your/human/reference"
+    mouse_ref: "/path/to/your/mouse/reference"
+  rsem:
+    ref: "/path/to/your/rsem/reference"
+  cicero:
+    fusion_annot: "/path/to/your/fusion_annot_lib.txt"
