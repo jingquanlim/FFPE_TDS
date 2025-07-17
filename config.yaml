@@ -53,3 +53,6 @@ rnaseq:
     mouse_ref: "/path/to/your/mouse/reference"
   rsem:
     ref: "/path/to/your/rsem/reference"
+  cicero:
+    fusion_ref: "/path/to/your/fusion_annot_lib.txt"
+
