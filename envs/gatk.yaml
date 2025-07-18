@@ -6,3 +6,4 @@ dependencies:
   - openjdk=17
   - gatk4=4.6.2.0 
   - picard=3.4.0
+  - tabix=0.2.6

@@ -35,7 +35,8 @@ rule all:
 
         expand("results/alignment/{sample}_processed_gatk.bam", sample=SAMPLES),
         expand("results/alignment/{sample}_processed_gatk.bai", sample=SAMPLES),
-
+        expand("results/alignment/{sample}_processed_gatk_recal.bam", sample=SAMPLES),
+        expand("results/alignment/{sample}_processed_gatk_recal.bai", sample=SAMPLES),
         # Variant calling results
         expand("results/variants/snv_indel/{sample}_variants.vcf", sample=SAMPLES),
         expand("results/variants/sv/{sample}_sv.vcf", sample=SAMPLES),
@@ -176,11 +177,57 @@ rule mark_duplicates:
             -M {output.metrics} \
             --CREATE_INDEX true
         """
+
+# GATK Base Quality Score Recalibration (BQSR)
+rule gatk_bqsr:
+    input:
+        bam="results/alignment/{sample}_processed_gatk.bam",
+        bai="results/alignment/{sample}_processed_gatk.bai",
+        ref=config["reference"]["genome"],
+        dbsnp=config["reference"]["dbsnp"]
+    output:
+        recal_table="results/alignment/{sample}_recal_data.table"
+    threads: 8
+    params:
+        "-Xmx16G",
+    conda:
+        "envs/gatk.yaml"
+    shell:
+        """
+        gatk BaseRecalibrator \
+            -R {input.ref} \
+            -I {input.bam} \
+            -O {output.recal_table} \
+            --known-sites {input.dbsnp} 
+        """
+rule gatk_applybqsr:
+    input:
+        bam="results/alignment/{sample}_processed_gatk.bam",
+        bai="results/alignment/{sample}_processed_gatk.bai",
+        ref=config["reference"]["genome"],
+        recal_table="results/alignment/{sample}_recal_data.table"
+    output:
+        bam="results/alignment/{sample}_processed_gatk_recal.bam",
+        bai="results/alignment/{sample}_processed_gatk_recal.bai"
+    threads: 8
+    params:
+        "-Xmx16G",
+    conda:
+        "envs/gatk.yaml"
+    shell:
+        """
+        gatk ApplyBQSR \
+        -R {input.ref} \
+        -I {input.bam} \
+        -O {output.bam} \
+        -bqsr-recal-file {input.recal_table} \
+        """
+
 # SNV and Indel calling with FreeBayes
 rule freebayes_call:
     input:
-        bam="results/alignment/{sample}_sorted.bam",
-        bai="results/alignment/{sample}_sorted.bam.bai",
+        bam="results/alignment/{sample}_processed_gatk_recal.bam",
+        bai="results/alignment/{sample}_processed_gatk_recal.bai",
         ref=config["reference"]["genome"],
         bed=config["input"]["target_bed"]
     output:
@@ -197,8 +244,8 @@ rule freebayes_call:
 # Structural variant calling with Manta
 rule manta_call:
     input:
-        bam="results/alignment/{sample}_sorted.bam",
-        bai="results/alignment/{sample}_sorted.bam.bai",
+        bam="results/alignment/{sample}_processed_gatk_recal.bam",
+        bai="results/alignment/{sample}_processed_gatk_recal.bai",
         ref=config["reference"]["genome"]
     output:
         vcf="results/variants/sv/{sample}_sv.vcf",
@@ -223,11 +270,26 @@ rule manta_call:
         """
 
 # MSI calling with MSIsensor-pro
+rule msi_list_prepare:
+    input:
+        ref=config["reference"]["genome"]
+    output:
+        msi_list="results/variants/msi/msi_list.txt"
+    threads: 1
+    conda:
+        "envs/msi.yaml"
+    shell:
+        """
+        mkdir -p results/variants/msi
+        msisensor-pro scan -d {input.ref} -o {output.msi_list}
+        """
+# MSI calling
 rule msi_call:
     input:
-        bam="results/alignment/{sample}_sorted.bam",
-        bai="results/alignment/{sample}_sorted.bam.bai",
-        ref=config["reference"]["genome"]
+        bam="results/alignment/{sample}_processed_gatk_recal.bam",
+        bai="results/alignment/{sample}_processed_gatk_recal.bai",
+        ref=config["reference"]["genome"],
+        msi_list="results/variants/msi/msi_list.txt"
     output:
         msi="results/variants/msi/{sample}_msi.txt"
     threads: 4
@@ -238,15 +300,15 @@ rule msi_call:
         mkdir -p results/variants/msi
         
         # Create MSI list if not exists
-        if [ ! -f results/variants/msi/msi_list.txt ]; then
-            msisensor-pro scan -d {input.ref} -o results/variants/msi/msi_list.txt
-        fi
+        #if [ ! -f results/variants/msi/msi_list.txt ]; then
+        #    msisensor-pro scan -d {input.ref} -o results/variants/msi/msi_list.txt
+        #fi
         
         # Run MSI analysis
         msisensor-pro pro -d results/variants/msi/msi_list.txt \
                           -t {input.bam} \
                           -o results/variants/msi/{wildcards.sample} \
-                          -b {threads}
+                          -b {threads} > /dev/null 
         
         # Rename output file
         mv results/variants/msi/{wildcards.sample} {output.msi}
