@@ -42,7 +42,7 @@ rule all:
         expand("results/reports/{sample}_quantification_report.tsv", sample=SAMPLES),
         
         # Summary report
-        "results/reports/pipeline_summary.html"
+        expand("results/reports/{sample}_pipeline_summary.html", sample=SAMPLES)
 
 # Quality control with FastQC
 rule fastqc:
@@ -150,12 +150,34 @@ rule umi_dedup:
         umi_tools dedup --stdin={input.bam} --stdout={output.bam}
         samtools index {output.bam}
         """
-
+# GATK dedupplication (optional, if using GATK)
+# rule mark_duplicates:
+#     input:
+#         bam="results/alignment/{sample}_sorted.bam",
+#         bai="results/alignment/{sample}_sorted.bam.bai"
+#     output:
+#         bam="results/alignment/{sample}_processed.bam",
+#         bai="results/alignment/{sample}_processed.bam.bai"
+#         metrics="results/alignment/{sample}.metrics.txt",
+#         umi_metrics="results/alignment/{sample}.umi_metrics.txt"
+#     threads: 8
+#     params:
+#         "-Xmx8G",
+#     conda:
+#         "env/gatk.yml"
+#     shell:
+#         """
+#         picard {params} UmiAwareMarkDuplicatesWithMateCigar  \
+#             I={input} \
+#             O={output.bam} \
+#             M={output.metrics} \
+#             UMI_METRICS={output.umi_metrics} 2 > /dev/null
+#         """
 # SNV and Indel calling with FreeBayes
 rule freebayes_call:
     input:
-        bam="results/alignment/{sample}_processed.bam",
-        bai="results/alignment/{sample}_processed.bam.bai",
+        bam="results/alignment/{sample}_sorted.bam",
+        bai="results/alignment/{sample}_sorted.bam.bai",
         ref=config["reference"]["genome"],
         bed=config["input"]["target_bed"]
     output:
@@ -172,8 +194,8 @@ rule freebayes_call:
 # Structural variant calling with Manta
 rule manta_call:
     input:
-        bam="results/alignment/{sample}_processed.bam",
-        bai="results/alignment/{sample}_processed.bam.bai",
+        bam="results/alignment/{sample}_sorted.bam",
+        bai="results/alignment/{sample}_sorted.bam.bai",
         ref=config["reference"]["genome"]
     output:
         vcf="results/variants/sv/{sample}_sv.vcf",
@@ -200,8 +222,8 @@ rule manta_call:
 # MSI calling with MSIsensor-pro
 rule msi_call:
     input:
-        bam="results/alignment/{sample}_processed.bam",
-        bai="results/alignment/{sample}_processed.bam.bai",
+        bam="results/alignment/{sample}_sorted.bam",
+        bai="results/alignment/{sample}_sorted.bam.bai",
         ref=config["reference"]["genome"]
     output:
         msi="results/variants/msi/{sample}_msi.txt"
@@ -218,7 +240,7 @@ rule msi_call:
         fi
         
         # Run MSI analysis
-        msisensor-pro msi -d results/variants/msi/msi_list.txt \
+        msisensor-pro pro -d results/variants/msi/msi_list.txt \
                           -t {input.bam} \
                           -o results/variants/msi/{wildcards.sample} \
                           -b {threads}
@@ -243,9 +265,9 @@ rule quantify_variants:
 # Generate summary report
 rule generate_summary:
     input:
-        reports=expand("results/reports/{sample}_quantification_report.tsv", sample=SAMPLES)
+        reports="results/reports/{sample}_quantification_report.tsv"
     output:
-        summary="results/reports/pipeline_summary.html"
+        summary="results/reports/{sample}_pipeline_summary.html"
     conda:
         "envs/reporting.yaml"
     script:
