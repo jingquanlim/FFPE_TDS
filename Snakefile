@@ -32,7 +32,10 @@ rule all:
         # Final processed BAM files
         expand("results/alignment/{sample}_processed.bam", sample=SAMPLES),
         expand("results/alignment/{sample}_processed.bam.bai", sample=SAMPLES),
-        
+
+        expand("results/alignment/{sample}_processed_gatk.bam", sample=SAMPLES),
+        expand("results/alignment/{sample}_processed_gatk.bai", sample=SAMPLES),
+
         # Variant calling results
         expand("results/variants/snv_indel/{sample}_variants.vcf", sample=SAMPLES),
         expand("results/variants/sv/{sample}_sv.vcf", sample=SAMPLES),
@@ -151,28 +154,28 @@ rule umi_dedup:
         samtools index {output.bam}
         """
 # GATK dedupplication (optional, if using GATK)
-# rule mark_duplicates:
-#     input:
-#         bam="results/alignment/{sample}_sorted.bam",
-#         bai="results/alignment/{sample}_sorted.bam.bai"
-#     output:
-#         bam="results/alignment/{sample}_processed.bam",
-#         bai="results/alignment/{sample}_processed.bam.bai"
-#         metrics="results/alignment/{sample}.metrics.txt",
-#         umi_metrics="results/alignment/{sample}.umi_metrics.txt"
-#     threads: 8
-#     params:
-#         "-Xmx8G",
-#     conda:
-#         "env/gatk.yml"
-#     shell:
-#         """
-#         picard {params} UmiAwareMarkDuplicatesWithMateCigar  \
-#             I={input} \
-#             O={output.bam} \
-#             M={output.metrics} \
-#             UMI_METRICS={output.umi_metrics} 2 > /dev/null
-#         """
+rule mark_duplicates:
+    input:
+        bam="results/alignment/{sample}_sorted.bam",
+        bai="results/alignment/{sample}_sorted.bam.bai"
+    output:
+        bam="results/alignment/{sample}_processed_gatk.bam",
+        bai="results/alignment/{sample}_processed_gatk.bai",
+        metrics="results/alignment/{sample}.metrics.txt"#,
+        #umi_metrics="results/alignment/{sample}.umi_metrics.txt"
+    threads: 8
+    params:
+        "-Xmx16G",
+    conda:
+        "envs/gatk.yaml"
+    shell:
+        """
+        picard {params} MarkDuplicates   \
+            -I {input.bam} \
+            -O {output.bam} \
+            -M {output.metrics} \
+            --CREATE_INDEX true
+        """
 # SNV and Indel calling with FreeBayes
 rule freebayes_call:
     input:
