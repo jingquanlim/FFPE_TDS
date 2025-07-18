@@ -105,30 +105,22 @@ def parse_sv_variants(sv_vcf_file):
 
 def parse_msi_results(msi_file):
     """Parse MSI results file"""
-    msi_info = {
-        'msi_score': 0,
-        'msi_status': 'Unknown',
-        'total_sites': 0,
-        'unstable_sites': 0
-    }
-    
+    # msi_info = {
+    #     'msi_score': 0,
+    #     'msi_status': 'Unknown',
+    #     'total_sites': 0,
+    #     'unstable_sites': 0
+    # }
+    msi_info = {}
     if not os.path.exists(msi_file):
         return msi_info
     
     try:
-        with open(msi_file, 'r') as f:
-            lines = f.readlines()
-            
-        for line in lines:
-            line = line.strip()
-            if line.startswith('Total_Number_of_Sites'):
-                msi_info['total_sites'] = int(line.split('\t')[1])
-            elif line.startswith('Number_of_Somatic_Sites'):
-                msi_info['unstable_sites'] = int(line.split('\t')[1])
-            elif line.startswith('MSI_Score'):
-                msi_info['msi_score'] = float(line.split('\t')[1])
-            elif line.startswith('MSI_Status'):
-                msi_info['msi_status'] = line.split('\t')[1]
+        df = pd.read_csv(msi_file, sep='\t', index_col=False)
+
+        msi_info['total_sites'] = df["Total_Number_of_Sites"][0]
+        msi_info['somatic'] = df["Number_of_Somatic_Sites"][0]
+        msi_info['percentage'] = df["%"][0]
                 
     except Exception as e:
         print(f"Error parsing MSI file {msi_file}: {e}")
@@ -184,8 +176,8 @@ def main():
     report_data.append({
         'sample': sample_name,
         'marker_type': 'MSI',
-        'count': msi_info['msi_score'],
-        'details': f"MSI Status: {msi_info['msi_status']}, Score: {msi_info['msi_score']}"
+        'count': msi_info['somatic'],
+        'details': f"MSI Total: {msi_info['total_sites']}, MSI Somatic: {msi_info['somatic']} ,Score: {msi_info['percentage']}"
     })
     
     # Save report
