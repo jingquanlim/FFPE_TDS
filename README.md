@@ -4,7 +4,7 @@ A Snakemake pipeline to detect markers on targeted DNA/RNA sequencing data. DNA 
 
 ### DNA
 - fastQC: quality control
-- umi_tools: extract UMIs from reads
+- umi_tools: extract UMIs from reads  (working on using GATK picard UmiAwareMarkDuplicatesWithMateCigar)
 - bwa-mem: alignment
 - sambamba, umi_tools: sorting, indexing, UMI-aware deduplicate
 - freebayes: call variants (SNV, Indel etc.)
@@ -59,4 +59,13 @@ Edit config.yaml to set paths to your FASTQ files, reference genome, and BED fil
 3. **Run the pipeline:**
 ```
 ./run_pipeline.sh -c 8  # Use 8 cores
+
+snakemake --cores 18 --sdm conda # Use 18 cores
+
 ```
+
+### Test on https://www.ncbi.nlm.nih.gov/sra/SRX958739[accn]
+
+1. **Download with fastq-dump --split-files**
+2. **get 36 gene locations: https://pmc.ncbi.nlm.nih.gov/articles/PMC4676270/**
+3. **UMI deduplication not working, comment out**

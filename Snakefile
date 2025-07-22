@@ -38,11 +38,21 @@ RNA_SAMPLES = get_rna_samples()
 # Define final output files
 rule all:
     input:
-        # DNA-seq outputs
-        expand("results/qc/fastqc/{sample}_R1_fastqc.html", sample=SAMPLES),
-        expand("results/qc/fastqc/{sample}_R2_fastqc.html", sample=SAMPLES),
+
+        # Quality control reports
+        expand("results/qc/fastqc/{sample}_R1_001_fastqc.html", sample=SAMPLES),
+        expand("results/qc/fastqc/{sample}_R2_001_fastqc.html", sample=SAMPLES),
+        
+        # Final processed BAM files
         expand("results/alignment/{sample}_processed.bam", sample=SAMPLES),
         expand("results/alignment/{sample}_processed.bam.bai", sample=SAMPLES),
+
+        expand("results/alignment/{sample}_processed_gatk.bam", sample=SAMPLES),
+        expand("results/alignment/{sample}_processed_gatk.bai", sample=SAMPLES),
+        expand("results/alignment/{sample}_processed_gatk_recal.bam", sample=SAMPLES),
+        expand("results/alignment/{sample}_processed_gatk_recal.bai", sample=SAMPLES),
+        # Variant calling results
+
         expand("results/variants/snv_indel/{sample}_variants.vcf", sample=SAMPLES),
         expand("results/variants/sv/{sample}_sv.vcf", sample=SAMPLES),
         expand("results/variants/msi/{sample}_msi.txt", sample=SAMPLES),
@@ -52,6 +62,10 @@ rule all:
         # RNA-seq outputs
         expand("results/rnaseq/quantification/{sample}.genes.results", sample=RNA_SAMPLES),
         
+
+        # Summary report
+        expand("results/reports/{sample}_pipeline_summary.html", sample=SAMPLES)
+
         expand("results/rnaseq/quantification/{sample}.isoforms.results", sample=RNA_SAMPLES),
         expand("results/rnaseq/fusion/{sample}_cicero.fusions.tsv", sample=RNA_SAMPLES)
 
@@ -62,10 +76,10 @@ rule fastqc:
         r1=config["input"]["fastq_dir"] + "/{sample}_R1_001.fastq.gz",
         r2=config["input"]["fastq_dir"] + "/{sample}_R2_001.fastq.gz"
     output:
-        r1_html="results/qc/fastqc/{sample}_R1_fastqc.html",
-        r1_zip="results/qc/fastqc/{sample}_R1_fastqc.zip",
-        r2_html="results/qc/fastqc/{sample}_R2_fastqc.html",
-        r2_zip="results/qc/fastqc/{sample}_R2_fastqc.zip"
+        r1_html="results/qc/fastqc/{sample}_R1_001_fastqc.html",
+        r1_zip="results/qc/fastqc/{sample}_R1_001_fastqc.zip",
+        r2_html="results/qc/fastqc/{sample}_R2_001_fastqc.html",
+        r2_zip="results/qc/fastqc/{sample}_R2_001_fastqc.zip"
     params:
         outdir="results/qc/fastqc"
     threads: 2
@@ -162,12 +176,80 @@ rule umi_dedup:
         umi_tools dedup --stdin={input.bam} --stdout={output.bam}
         samtools index {output.bam}
         """
+# GATK dedupplication (optional, if using GATK)
+rule mark_duplicates:
+    input:
+        bam="results/alignment/{sample}_sorted.bam",
+        bai="results/alignment/{sample}_sorted.bam.bai"
+    output:
+        bam="results/alignment/{sample}_processed_gatk.bam",
+        bai="results/alignment/{sample}_processed_gatk.bai",
+        metrics="results/alignment/{sample}.metrics.txt"#,
+        #umi_metrics="results/alignment/{sample}.umi_metrics.txt"
+    threads: 8
+    params:
+        "-Xmx16G",
+    conda:
+        "envs/gatk.yaml"
+    shell:
+        """
+        picard {params} MarkDuplicates   \
+            -I {input.bam} \
+            -O {output.bam} \
+            -M {output.metrics} \
+            --CREATE_INDEX true
+        """
+
+# GATK Base Quality Score Recalibration (BQSR)
+rule gatk_bqsr:
+    input:
+        bam="results/alignment/{sample}_processed_gatk.bam",
+        bai="results/alignment/{sample}_processed_gatk.bai",
+        ref=config["reference"]["genome"],
+        dbsnp=config["reference"]["dbsnp"]
+    output:
+        recal_table="results/alignment/{sample}_recal_data.table"
+    threads: 8
+    params:
+        "-Xmx16G",
+    conda:
+        "envs/gatk.yaml"
+    shell:
+        """
+        gatk BaseRecalibrator \
+            -R {input.ref} \
+            -I {input.bam} \
+            -O {output.recal_table} \
+            --known-sites {input.dbsnp} 
+        """
+rule gatk_applybqsr:
+    input:
+        bam="results/alignment/{sample}_processed_gatk.bam",
+        bai="results/alignment/{sample}_processed_gatk.bai",
+        ref=config["reference"]["genome"],
+        recal_table="results/alignment/{sample}_recal_data.table"
+    output:
+        bam="results/alignment/{sample}_processed_gatk_recal.bam",
+        bai="results/alignment/{sample}_processed_gatk_recal.bai"
+    threads: 8
+    params:
+        "-Xmx16G",
+    conda:
+        "envs/gatk.yaml"
+    shell:
+        """
+        gatk ApplyBQSR \
+        -R {input.ref} \
+        -I {input.bam} \
+        -O {output.bam} \
+        -bqsr-recal-file {input.recal_table} \
+        """
 
 # SNV and Indel calling with FreeBayes
 rule freebayes_call:
     input:
-        bam="results/alignment/{sample}_processed.bam",
-        bai="results/alignment/{sample}_processed.bam.bai",
+        bam="results/alignment/{sample}_processed_gatk_recal.bam",
+        bai="results/alignment/{sample}_processed_gatk_recal.bai",
         ref=config["reference"]["genome"],
         bed=config["input"]["target_bed"]
     output:
@@ -184,8 +266,8 @@ rule freebayes_call:
 # Structural variant calling with Manta
 rule manta_call:
     input:
-        bam="results/alignment/{sample}_processed.bam",
-        bai="results/alignment/{sample}_processed.bam.bai",
+        bam="results/alignment/{sample}_processed_gatk_recal.bam",
+        bai="results/alignment/{sample}_processed_gatk_recal.bai",
         ref=config["reference"]["genome"]
     output:
         vcf="results/variants/sv/{sample}_sv.vcf",
@@ -210,11 +292,26 @@ rule manta_call:
         """
 
 # MSI calling with MSIsensor-pro
+rule msi_list_prepare:
+    input:
+        ref=config["reference"]["genome"]
+    output:
+        msi_list="results/variants/msi/msi_list.txt"
+    threads: 1
+    conda:
+        "envs/msi.yaml"
+    shell:
+        """
+        mkdir -p results/variants/msi
+        msisensor-pro scan -d {input.ref} -o {output.msi_list}
+        """
+# MSI calling
 rule msi_call:
     input:
-        bam="results/alignment/{sample}_processed.bam",
-        bai="results/alignment/{sample}_processed.bam.bai",
-        ref=config["reference"]["genome"]
+        bam="results/alignment/{sample}_processed_gatk_recal.bam",
+        bai="results/alignment/{sample}_processed_gatk_recal.bai",
+        ref=config["reference"]["genome"],
+        msi_list="results/variants/msi/msi_list.txt"
     output:
         msi="results/variants/msi/{sample}_msi.txt"
     threads: 4
@@ -225,15 +322,15 @@ rule msi_call:
         mkdir -p results/variants/msi
         
         # Create MSI list if not exists
-        if [ ! -f results/variants/msi/msi_list.txt ]; then
-            msisensor-pro scan -d {input.ref} -o results/variants/msi/msi_list.txt
-        fi
+        #if [ ! -f results/variants/msi/msi_list.txt ]; then
+        #    msisensor-pro scan -d {input.ref} -o results/variants/msi/msi_list.txt
+        #fi
         
         # Run MSI analysis
-        msisensor-pro msi -d results/variants/msi/msi_list.txt \
+        msisensor-pro pro -d results/variants/msi/msi_list.txt \
                           -t {input.bam} \
                           -o results/variants/msi/{wildcards.sample} \
-                          -b {threads}
+                          -b {threads} > /dev/null 
         
         # Rename output file
         mv results/variants/msi/{wildcards.sample} {output.msi}
@@ -255,9 +352,9 @@ rule quantify_variants:
 # Generate summary report
 rule generate_summary:
     input:
-        reports=expand("results/reports/{sample}_quantification_report.tsv", sample=SAMPLES)
+        reports="results/reports/{sample}_quantification_report.tsv"
     output:
-        summary="results/reports/pipeline_summary.html"
+        summary="results/reports/{sample}_pipeline_summary.html"
     conda:
         "envs/reporting.yaml"
     script:
