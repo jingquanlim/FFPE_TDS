@@ -2,13 +2,13 @@
 
 # Input data paths
 input:
-  fastq_dir: "/data/ocklab2/xieyi/projects/FFPE_TDS/data/test_data"
-  target_bed: "/data/ocklab2/xieyi/projects/FFPE_TDS/data/test_data/TWIST_NHL_rev3.bed"
+  fastq_dir: "results/fastq"
+  target_bed: "data/design/raindance.bed"
 
 # Reference genome
 reference:
-  genome: "/data/ocklab2/xieyi/genomics-reference/hs37d5/hs37d5.fa.gz"  # Update this path to your hs37d5 reference
-
+  genome: "data/genomics-reference/hs37d5/hs37d5.fa"  # Update this path to your hs37d5 reference
+  dbsnp: "data/genomics-reference/hs37d5/dbsnp_138.b37.bgz.vcf.gz"  # Update this path to your dbSNP VCF
 # UMI configuration
 umi:
   # UMI pattern for umi_tools extract
@@ -24,22 +24,22 @@ tools:
     threads: 2
   
   bwa:
-    threads: 8
+    threads: 18
   
   freebayes:
-    threads: 4
+    threads: 24
     # Additional parameters can be added here
     min_base_quality: 20
     min_mapping_quality: 20
   
   manta:
-    threads: 8
+    threads: 18
   
   msisensor:
-    threads: 4
+    threads: 24
 
 # Resource allocation
 resources:
-  default_mem_mb: 4000
-  alignment_mem_mb: 8000
-  variant_calling_mem_mb: 6000
+  default_mem_mb: 40000
+  alignment_mem_mb: 80000
+  variant_calling_mem_mb: 60000

@@ -127,7 +127,7 @@ else
 fi
 
 # Add additional useful flags
-SNAKEMAKE_CMD="$SNAKEMAKE_CMD --printshellcmds --reason --stats logs/snakemake_stats.txt"
+SNAKEMAKE_CMD="$SNAKEMAKE_CMD --printshellcmds logs/snakemake_stats.txt"
 
 echo "Command: $SNAKEMAKE_CMD"
 echo
