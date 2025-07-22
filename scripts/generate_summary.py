@@ -8,14 +8,14 @@ import os
 from pathlib import Path
 from jinja2 import Template
 
-def load_all_reports(report_files):
+def load_all_reports(report_file):
     """Load and combine all quantification reports"""
     all_data = []
     
-    for report_file in report_files:
-        if os.path.exists(report_file):
-            df = pd.read_csv(report_file, sep='\t')
-            all_data.append(df)
+    # for report_file in report_files:
+    #     if os.path.exists(report_file):
+    df = pd.read_csv(report_file, sep='\t')
+    all_data.append(df)
     
     if all_data:
         combined_df = pd.concat(all_data, ignore_index=True)
@@ -110,3 +110,36 @@ def create_html_report(df, stats, output_file):
             </thead>
             <tbody>
                 {% for index, row in df.iterrows() %}
+                <tr>
+                    <td>{{ row['sample'] }}</td>
+                    <td>{{ row['marker_type'] }}</td>
+                    <td>{{ row['count'] }}</td>
+                    <td>{{ row['details'] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </body>
+    </html>
+    """
+    template = Template(html_template)
+    html_content = template.render(df=df, stats=stats, timestamp=pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S'))
+    
+    with open(output_file, 'w') as f:
+        f.write(html_content)
+def main():
+    # Define input and output paths
+    report_file = snakemake.input.reports
+    output_file = snakemake.output.summary
+    
+    # Load all reports
+    combined_df = load_all_reports(report_file)
+    print(f"Loaded {len(combined_df)} reports.")
+    # Generate summary statistics
+    stats = generate_summary_stats(combined_df)
+    
+    # Create HTML report
+    create_html_report(combined_df, stats, output_file)
+
+if __name__ == "__main__":
+    main()
