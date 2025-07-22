@@ -47,12 +47,14 @@ resources:
 # RNA-seq specific settings
 rnaseq:
   input:
-    fastq_dir: "/path/to/your/rnaseq/fastq"
+    fastq_dir: "results/fastq_rna"
   bbsplit:
-    human_ref: "/path/to/your/human/reference"
-    mouse_ref: "/path/to/your/mouse/reference"
+    human_ref: "data/genomics-reference/hs37d5/hs37d5.fa"
+    mouse_ref: "data/genomics-reference/hs37d5/hs37d5.fa"
+  STAR:
+    ref: "data/genomics-reference/hs37d5/STAR/"
   rsem:
-    ref: "/path/to/your/rsem/reference"
+    ref: "data/genomics-reference/hs37d5/rsem_ref/rsem_ref"
   cicero:
-    fusion_ref: "/path/to/your/fusion_annot_lib.txt"
+    fusion_annot: "data/genomics-reference/hs37d5/hs37d5.fa"
 
