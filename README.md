@@ -69,3 +69,5 @@ snakemake --cores 18 --sdm conda # Use 18 cores
 1. **Download with fastq-dump --split-files**
 2. **get 36 gene locations: https://pmc.ncbi.nlm.nih.gov/articles/PMC4676270/**
 3. **UMI deduplication not working, comment out**
+
+### Test RNAseq on https://www.ncbi.nlm.nih.gov/sra/SRX7223888[accn]
