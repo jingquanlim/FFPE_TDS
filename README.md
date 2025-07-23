@@ -58,9 +58,10 @@ Edit config.yaml to set paths to your FASTQ files, reference genome, and BED fil
 
 3. **Run the pipeline:**
 ```
-./run_pipeline.sh -c 8  # Use 8 cores
+#./run_pipeline.sh -c 8  # Use 8 cores
 
 snakemake --cores 18 --sdm conda # Use 18 cores
+snakemake --cores 18 --sdm conda --snakefile Snakefile_RNA.smk # for RNAseq
 
 ```
 
