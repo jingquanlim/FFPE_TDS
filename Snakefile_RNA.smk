@@ -34,7 +34,9 @@ rule all:
         expand("results/rnaseq/quantification/{sample}.genes.results", sample=RNA_SAMPLES),
 
         expand("results/rnaseq/quantification/{sample}.isoforms.results", sample=RNA_SAMPLES),
-        expand("results/rnaseq/fusion/{sample}_cicero.fusions.tsv", sample=RNA_SAMPLES)
+        #expand("results/rnaseq/fusion/{sample}_cicero.fusions.tsv", sample=RNA_SAMPLES)
+        expand("results/rnaseq/fusion/arriba/{sample}.fusion.tsv", sample=RNA_SAMPLES),
+        expand("results/rnaseq/fusion/arriba/discarded/{sample}.discarded.tsv", sample=RNA_SAMPLES)
 
 
 # Quality control with FastQC
@@ -159,27 +161,65 @@ rule rsem_quant:
         """
 
 # CICERO for fusion detection
-rule cicero:
+# rule cicero:
+#     input:
+#         chimeric_junction="results/rnaseq/alignment/{sample}_Chimeric.out.junction",
+#         bam="results/rnaseq/alignment/{sample}_Aligned.sortedByCoord.out.bam"
+#     output:
+#         fusions="results/rnaseq/fusion/{sample}_cicero.fusions.tsv"
+#     params:
+#         cicero_sif="data/cicero1.9.6.sif",
+#         output_dir="results/rnaseq/fusion",
+#         cicero_ref=config["rnaseq"]["cicero"]["ref"]
+#     threads: 18
+#     conda:
+#         "envs/rnaseq.yaml"
+#     shell:
+#         """
+#         mkdir -p results/rnaseq/fusion
+#         {params.cicero_sif} -n {threads} \
+#         -b {input.bam} \
+#         -j {input.chimeric_junction} \
+#         -o {params.output_dir} \
+#         -r {params.cicero_ref} \
+#         -f {output.fusions} \
+#         -g GRCh37-lite
+#         """
+
+# arriba fusion detection
+rule arriba:
     input:
-        chimeric_junction="results/rnaseq/alignment/{sample}_Chimeric.out.junction",
-        bam="results/rnaseq/alignment/{sample}_Aligned.sortedByCoord.out.bam"
+        r1=config["rnaseq"]["input"]["fastq_dir"] + "/{sample}_R1_001.fastq.gz",
+        r2=config["rnaseq"]["input"]["fastq_dir"] + "/{sample}_R2_001.fastq.gz",
+        stardir=config["rnaseq"]["STAR"]["ref"],
+        arriba_ref=config["rnaseq"]["arriba"]["assembly_ref"],
+        annotation=config["rnaseq"]["arriba"]["annotation"],
+        blacklist=config["rnaseq"]["arriba"]["blacklist"],
+        known_fusions=config["rnaseq"]["arriba"]["known_fusions"],
+        protein_domains=config["rnaseq"]["arriba"]["protein_domains"]
     output:
-        fusions="results/rnaseq/fusion/{sample}_cicero.fusions.tsv"
-    params:
-        cicero_sif="data/cicero1.9.6.sif",
-        output_dir="results/rnaseq/fusion",
-        cicero_ref=config["rnaseq"]["cicero"]["ref"]
+        fusion = 'results/rnaseq/fusion/arriba/{sample}.fusion.tsv',
+        discarded = 'results/rnaseq/fusion/arriba/discarded/{sample}.discarded.tsv' 
     threads: 18
     conda:
-        "envs/rnaseq.yaml"
+        "envs/arriba.yaml"
     shell:
         """
-        mkdir -p results/rnaseq/fusion
-        {params.cicero_sif} -n {threads} \
-        -b {input.bam} \
-        -j {input.chimeric_junction} \
-        -o {params.output_dir} \
-        -r {params.cicero_ref} \
-        -f {output.fusions} \
-        -g GRCh37-lite
+        mkdir -p results/rnaseq/fusion/arriba
+
+        STAR \
+            --runThreadN {threads} \
+            --genomeDir {input.stardir} --genomeLoad NoSharedMemory \
+            --readFilesIn {input.r1} {input.r2} --readFilesCommand zcat \
+            --outFileNamePrefix results/rnaseq/fusion/arriba/{wildcards.sample}_ \
+            --outStd BAM_Unsorted --outSAMtype BAM Unsorted --outSAMunmapped Within --outBAMcompression 0 \
+            --outFilterMultimapNmax 50 --peOverlapNbasesMin 10 --alignSplicedMateMapLminOverLmate 0.5 --alignSJstitchMismatchNmax 5 -1 5 5 \
+            --chimSegmentMin 10 --chimOutType WithinBAM HardClip --chimJunctionOverhangMin 10 --chimScoreDropMax 30 \
+            --chimScoreJunctionNonGTAG 0 --chimScoreSeparation 1 --chimSegmentReadGapMax 3 --chimMultimapNmax 50 |
+        arriba \
+            -x /dev/stdin \
+            -o {output.fusion} -O {output.discarded} \
+            -a {input.arriba_ref} -g {input.annotation} \
+            -b {input.blacklist} -k {input.known_fusions} -t {input.known_fusions} -p {input.protein_domains} 
+
         """

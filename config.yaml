@@ -57,4 +57,10 @@ rnaseq:
     ref: "data/genomics-reference/hs37d5/rsem_ref/rsem_ref"
   cicero:
     ref: "/home/dxd_zjx/project/FFPE_TDS/data/genomics-reference/hs37d5/cicero/reference"
+  arriba:
+    assembly_ref: "data/genomics-reference/hs37d5/arriba/hs37d5.fa"
+    annotation: "data/genomics-reference/hs37d5/arriba/GENCODE19.gtf"
+    blacklist:  "data/genomics-reference/hs37d5/arriba/arriba_v2.5.0/database/blacklist_hg19_hs37d5_GRCh37_v2.5.0.tsv.gz"
+    known_fusions: "data/genomics-reference/hs37d5/arriba/arriba_v2.5.0/database/known_fusions_hg19_hs37d5_GRCh37_v2.5.0.tsv.gz"
+    protein_domains: "data/genomics-reference/hs37d5/arriba/arriba_v2.5.0/database/protein_domains_hg19_hs37d5_GRCh37_v2.5.0.gff3"
 

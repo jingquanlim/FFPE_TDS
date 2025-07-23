@@ -1,0 +1,7 @@
+channels:
+  - conda-forge
+  - bioconda
+channel_priority: strict
+dependencies:
+  - arriba=2.5.0
+  - star=2.7.11
