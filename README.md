@@ -18,7 +18,7 @@ A Snakemake pipeline to detect markers on targeted DNA/RNA sequencing data. DNA 
 - STAR: alignment
 - samtools: sort
 - qualimap: quality control
-- FusionCatcher/CICERO(slow, but manage to call ITD): gene fusions
+- FusionCatcher/CICERO(too slow, but manage to call ITD): gene fusions /Arriba2.5.0 (MIT license)
 - featurecounts: TPM
 
 ## Requirements
