@@ -56,5 +56,5 @@ rnaseq:
   rsem:
     ref: "data/genomics-reference/hs37d5/rsem_ref/rsem_ref"
   cicero:
-    fusion_annot: "data/genomics-reference/hs37d5/hs37d5.fa"
+    ref: "/home/dxd_zjx/project/FFPE_TDS/data/genomics-reference/hs37d5/cicero/reference"
 

@@ -109,6 +109,7 @@ rule star_align_rnaseq:
         stardir=config["rnaseq"]["STAR"]["ref"]
     output:
         bam="results/rnaseq/alignment/{sample}_Aligned.toTranscriptome.out.bam",
+        sorted_bam="results/rnaseq/alignment/{sample}_Aligned.sortedByCoord.out.bam",
         chimeric_junction="results/rnaseq/alignment/{sample}_Chimeric.out.junction"
     threads: 12
     conda:
@@ -131,6 +132,8 @@ rule star_align_rnaseq:
              --runThreadN {threads}
         # Create an empty chimeric file if STAR didn't find any chimeric reads
         [[ -f {output.chimeric_junction} ]] || touch {output.chimeric_junction}
+        # Index the BAM file
+        samtools index {output.sorted_bam}
         """
 
 # RSEM quantification
@@ -159,14 +162,24 @@ rule rsem_quant:
 rule cicero:
     input:
         chimeric_junction="results/rnaseq/alignment/{sample}_Chimeric.out.junction",
-        fusion_annot=config["rnaseq"]["cicero"]["fusion_annot"]
+        bam="results/rnaseq/alignment/{sample}_Aligned.sortedByCoord.out.bam"
     output:
         fusions="results/rnaseq/fusion/{sample}_cicero.fusions.tsv"
-    threads: 1
+    params:
+        cicero_sif="data/cicero1.9.6.sif",
+        output_dir="results/rnaseq/fusion",
+        cicero_ref=config["rnaseq"]["cicero"]["ref"]
+    threads: 18
     conda:
         "envs/rnaseq.yaml"
     shell:
         """
         mkdir -p results/rnaseq/fusion
-        cicero.py -t {input.chimeric_junction} -o {output.fusions} -a {input.fusion_annot}
+        {params.cicero_sif} -n {threads} \
+        -b {input.bam} \
+        -j {input.chimeric_junction} \
+        -o {params.output_dir} \
+        -r {params.cicero_ref} \
+        -f {output.fusions} \
+        -g GRCh37-lite
         """
